@@ -81,11 +81,22 @@ data1
 ggplot(df, aes(x=genhlth)) + geom_bar() + labs(x = "general health")
 ```
 
+```{r}
+data2 <- data %>% 
+  select(genhlth, sleptim1, sex) %>%
+  drop_na() %>%
+  filter(sleptim1 <25) %>%
+  group_by(genhlth) %>%
+  summarize(avg_sleep = mean(sleptim1))
+
+
+ggplot(data2, aes(x= genhlth, y = avg_sleep)) + geom_point(aes(x= genhlth, y = avg_sleep)) + geom_line() + labs(x = "general health", y = "average sleep hours", title = "general health vs average sleep hours") + ylim(6.5,7.2)
+```
 
 ```{r}
 p <- data1 %>%
   ggplot() + geom_col(aes(x = genhlth, y = avg_sleep, fill = sex), position = "dodge") + xlab("general health") +
-  ggtitle("general health vs avg sleep")
+  ggtitle("general health vs avg sleep") 
 
 p
 ```

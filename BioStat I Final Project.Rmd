@@ -1,0 +1,123 @@
+---
+title: "BioStat I Final Project"
+author: "Jiefei Hu, Minhee Kwon, Yaoting Li, Xueqing Zhou"
+date: "2022-12-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  cache = TRUE,
+  error = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  tidy.opts = list(width.cutoff = 60)
+)
+```
+
+```{r load_packages}
+library(tidyverse)
+library(gtsummary)
+```
+
+```{r load_data}
+load("./brfss2013.RData")
+dim(brfss2013)
+head(brfss2013)
+```
+
+```{r data_clean}
+# drop duplication
+brfss_unique <- brfss2013[!duplicated(brfss2013$seqno), ]
+
+# drop blank/refused/unknown/not sure
+brfss_tmp <- brfss_unique %>%
+  select(X_state, genhlth, sex, income2, weight2, height3, sleptim1, fruit1, fruitju1) %>%
+  na.omit() %>%
+  filter(X_state == "Alabama") %>%
+  filter(!(genhlth == 7) & !(genhlth == 9)) %>%
+  filter(!(income2 == 77) & !(income2 == 99)) %>%
+  filter(!(weight2 == 7777) & !(weight2 == 9999) & !(weight2 == '')) %>%
+  filter(!(height3 == 7777) & !(height3 == 9999)) %>%
+  filter(sleptim1 >= 1 & sleptim1 <= 24) %>%
+  tibble()
+
+# unify height unit in meters
+tmp_height <- c()
+for (i in brfss_tmp$height3) {
+  if (as.numeric(i) <= 711) {
+    tmp_height <- append(tmp_height, (as.numeric(substr(i, 1, 1))*30.48 + as.numeric(substr(i, 2, 3))*2.54)/100)
+  } else {
+    tmp_height <- append(tmp_height, as.numeric(substr(i, 2, 4))/100)
+  }}
+brfss_tmp$height_new <- tmp_height
+
+# unify weight units in kilograms
+tmp_weight <- c()
+for (i in brfss_tmp$weight2) {
+  if (as.numeric(i) <= 999) {
+    tmp_weight <- append(tmp_weight, as.numeric(i)*0.4536)
+  } else {
+    tmp_weight <- append(tmp_weight, as.numeric(substr(i, 2, 4)))
+  }}
+brfss_tmp$weight_new <- tmp_weight
+
+# create new 'BMI' variable
+brfss_tmp %>% 
+  mutate(BMI = weight_new/height_new^2) %>%
+  select(genhlth, sex, income2, BMI, sleptim1, fruit1, fruitju1) -> brfss
+```
+
+## What is the outcome variable of interest in your analysis? 
+
+Our outcome variable of interest is General Health 'genhlth'.
+
+```{r outcome_variable_distribution}
+plot(brfss$genhlth,
+     main = "Distribution of General Health",
+     xlab = "General Health")
+```
+
+##	What are the descriptive characteristics of your specified cohort?
+
+### Distribution
+
+```{r genhlth~sex}
+barplot(table(brfss$sex, brfss$genhlth),
+        main = "Distribution of General Health by Sex", xlab = "General Health",
+        legend = rownames(table(brfss$sex, brfss$genhlth)), beside = TRUE)
+```
+```{r genhlth~income}
+barplot(table(brfss$income2, brfss$genhlth),
+        main = "Distribution of General Health by Income Level", xlab = "General Health",
+        legend = rownames(table(brfss$income2, brfss$genhlth)), beside = TRUE)
+```
+
+```{r genhlth~BMI}
+brfss %>%
+  ggplot(aes(x = genhlth, y = BMI, fill = genhlth)) +
+  geom_boxplot() + theme_classic() +
+  labs(title = "Boxplot of General Health by BMI",
+       x = "General Health", y = "BMI")
+```
+
+Table One is used to show numerical summaries of characteristics/variables of interest by the categorical variable General Health 'genhlth'. 
+
+More specifically, it shows number of count and percentage for all categorical variables, and it presents median and IQR for all continuous variables.
+
+```{r table_one}
+tbl_summary(brfss, by = genhlth,
+            label = list(sex ~ "Sex",
+                         income2 ~ "Income Level",
+                         BMI ~ "BMI",
+                         sleptim1 ~ "Sleep Hours",
+                         fruit1 ~ "Times Eating Fruit",
+                         fruitju1 ~ "Times Drinking Fruit Juices"),
+            statistic = list(all_continuous() ~ "{median}, ({p25}, {p75})",
+                             all_categorical() ~ "{n} ({p}%)")) %>%
+  add_p(test = list(all_continuous() ~ "t.test")) %>%
+  modify_header(label = "**Characteristics**") %>%
+  bold_labels()
+```
+
+## sociodemographic variables

@@ -64,7 +64,7 @@ Is there a correlation between eating fruits and general health? (Maybe we could
 ```{r}
 ## data wrangling
 data <- df %>%
-  select(genhlth, sleptim1, sex, menthlth, fruit1, fruitju1)
+  select(genhlth, sleptim1, sex, menthlth, fruit1, fruitju1, avedrnk2)
 data
 ```
 ## Research question 1
@@ -87,8 +87,7 @@ data2 <- data %>%
   select(genhlth, sleptim1, sex) %>%
   drop_na() %>%
   filter(sleptim1 <25) %>%
-  group_by(genhlth) %>%
-  summarize(avg_sleep = mean(sleptim1))
+  c
 
 
 ggplot(data2, aes(x= genhlth, y = avg_sleep)) + geom_point(aes(x= genhlth, y = avg_sleep)) + geom_line() + labs(x = "general health", y = "average sleep hours", title = "general health vs average sleep hours") + ylim(6.5,7.2)
@@ -100,5 +99,22 @@ p <- data1 %>%
   ggtitle("general health vs avg sleep") 
 
 p
+```
+```{r}
+data3 <- df %>%
+  select(genhlth, avedrnk2, sex) %>%
+  drop_na() %>%
+  filter(avedrnk2<77)%>%
+  group_by(genhlth) %>%
+  summarize(avg_drink = mean(avedrnk2))
+
+ggplot(data3, aes(x= genhlth, y = avedrnk2)) + geom_point(aes(x= genhlth, y = avg_drink)) + labs(x = "general health", y = "average drink", title = "general health vs average drink")
+```
+```{r}
+p2 <- data3 %>%
+  ggplot() + geom_col(aes(x = genhlth, y = avedrnk2, fill = sex), position = "dodge") + xlab("general health") +
+  ggtitle("general health vs avg sleep") 
+
+p2
 ```
 

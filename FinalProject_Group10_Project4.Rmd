@@ -100,6 +100,8 @@ p <- data1 %>%
 
 p
 ```
+## Research Question2:
+Is there association between general health and alcohol drink?
 ```{r}
 data3 <- df %>%
   select(genhlth, avedrnk2, sex) %>%

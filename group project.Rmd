@@ -1,0 +1,57 @@
+---
+title: "hw9_Jiefei Hu_Rmd"
+output: html_document
+date: "2022-11-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## load in required library
+```{r}
+library(readr)
+library(tidyverse)
+load("C:/Users/HP/Desktop/brfss2013.RData")
+```
+
+## What sociodemographic variables, if any, may be important to consider for your research question?
+```{r}
+## income are associated with the general health
+barplot(table(brfss2013$income2, brfss2013$genhlth),
+        main = "Distribution of General Health by income", xlab = "General Health", ylab = "frequency", legend = rownames(table(brfss2013$income2, brfss2013$genhlth)), beside = TRUE)
+
+## I will use the kruskal.test to test the distributions of the general health across different income
+
+## H0: the distributions of the general health across the different income are the same
+## Ha: at least one distribution of the general health differs among different income
+table(brfss2013$genhlth, brfss2013$income2)
+kruskal.test(genhlth ~ income2, data=brfss2013)
+
+## Conclunsion: If we are using a significance level of α = 0.025, we would conclude that the distributions of the general health across the different income are the same (p-value = 2.2e-16 < 0.025). From our barplots, it appears as though higher family income yielded better general health than lower family income
+```
+
+
+
+```{r}
+## using special equipment, such as a cane, a wheelchair, a special bed, or a special telephone are associated with the general health
+barplot(table(brfss2013$useequip, brfss2013$genhlth),
+        main = "Distribution of General Health by use special equip", xlab = "General Health", ylab = "frequency",legend = rownames(table(brfss2013$useequip, brfss2013$genhlth)))
+```
+
+```{r}
+## Serious difficulty seeing are associated with the general health
+barplot(table(brfss2013$blind, brfss2013$genhlth),
+        main = "Distribution of General Health by blind", xlab = "General Health", ylab = "frequency", legend = rownames(table(brfss2013$blind, brfss2013$genhlth)))
+
+## I will use the kruskal.test to test the distributions of the general health across the blinding
+## H0: the distributions of the general health across the blinding are the same
+## Ha: at least one distribution of the general health differs among different blind
+table(brfss2013$genhlth, brfss2013$blind)
+kruskal.test(genhlth ~ blind, data=brfss2013)
+
+## Conclunsion: If we are using a significance level of α = 0.025, we would conclude that there is sufficient evidence to reject the assumption that the distributions of the general health across the blinding are the same (p-value = 2.2e-16 < 0.025). From our barplots, it appears as though not blind yielded better general health than blind
+```
+
+
+

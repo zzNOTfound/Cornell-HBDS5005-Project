@@ -82,6 +82,7 @@ ggplot(df, aes(x=genhlth)) + geom_bar() + labs(x = "general health")
 ```
 
 ```{r}
+# hello
 data2 <- data %>% 
   select(genhlth, sleptim1, sex) %>%
   drop_na() %>%

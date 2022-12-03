@@ -179,3 +179,9 @@ ggplot(brfss_alcohol_sex, aes(x = genhlth, y = avg_drink, fill = sex)) +
          labs(x = "General Health Status", y = "Daily Alcohol Consumption", fill = "Gender", title = "Relationship between genhealth and alcohol consumption") 
 ```
 ## Explanation: The plot shows that people in poor health drinks more alcohol than those people in good health. When comparing between genders, male consumes more alcohol than women
+
+```{r}
+## In progress
+# t.test(avg_drink ~ genhlth, data = brfss_alcohol_sex)
+```
+

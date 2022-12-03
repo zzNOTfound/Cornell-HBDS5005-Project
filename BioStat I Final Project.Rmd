@@ -32,7 +32,7 @@ brfss_unique <- brfss2013[!duplicated(brfss2013$seqno), ]
 
 # drop blank/refused/unknown/not sure
 brfss_tmp <- brfss_unique %>%
-  select(X_state, genhlth, sex, income2, weight2, height3, sleptim1, fruit1, fruitju1) %>%
+  select(X_state, genhlth, sex, income2, weight2, height3, sleptim1, fruit1, fruitju1, avedrnk2) %>%
   na.omit() %>%
   filter(X_state == "Alabama") %>%
   filter(!(genhlth == 7) & !(genhlth == 9)) %>%
@@ -65,7 +65,7 @@ brfss_tmp$weight_new <- tmp_weight
 # create new 'BMI' variable
 brfss_tmp %>% 
   mutate(BMI = weight_new/height_new^2) %>%
-  select(genhlth, sex, income2, BMI, sleptim1, fruit1, fruitju1) -> brfss
+  select(genhlth, sex, income2, BMI, sleptim1, fruit1, fruitju1, avedrnk2) -> brfss
 ```
 
 ## What is the outcome variable of interest in your analysis? 
@@ -106,6 +106,14 @@ Table One is used to show numerical summaries of characteristics/variables of in
 More specifically, it shows number of count and percentage for all categorical variables, and it presents median and IQR for all continuous variables.
 
 ```{r table_one}
+data3 <- df %>%
+  select(genhlth, avedrnk2, sex) %>%
+  drop_na() %>%
+  filter(avedrnk2<77)%>%
+  group_by(genhlth) %>%
+  summarize(avg_drink = mean(avedrnk2))
+
+
 tbl_summary(brfss, by = genhlth,
             label = list(sex ~ "Sex",
                          income2 ~ "Income Level",
@@ -121,3 +129,53 @@ tbl_summary(brfss, by = genhlth,
 ```
 
 ## sociodemographic variables
+
+## Research Question 1
+Is there an association between alcohol consumption and level of general health?
+-  How does it apply to across income level, genders,etc?
+
+```{r}
+# version1
+
+brfss_alcohol <- brfss_unique %>%
+  select(genhlth, avedrnk2, sex) %>%
+  drop_na() %>%
+  filter(avedrnk2<77)%>%
+  group_by(genhlth) %>%
+  summarize(avg_drink = mean(avedrnk2))
+
+ggplot(brfss_alcohol, aes(x= genhlth, y = avedrnk2)) + geom_point(aes(x= genhlth, y = avg_drink)) + labs(x = "general health", y = "average drink", title = "general health vs average drink") 
+
+# version 2
+brfss_tmp_alcohol <- brfss %>%
+  select(genhlth, sex, income2 ,avedrnk2) %>%
+  na.omit() %>%
+  filter(avedrnk2<77) %>%
+  group_by(genhlth) %>%
+  summarize(avg_drink = mean(avedrnk2)) %>%
+  tibble()
+
+ggplot(brfss_tmp_alcohol, aes(x= genhlth, y = avedrnk2)) + geom_point(aes(x= genhlth, y = avg_drink)) + labs(x = "general health", y = "average drink", title = "general health vs average drink") 
+
+## question here: if I use brfss_unique data and brfss data, the mean is different
+## it more make sense if I use brfss_alcohol data when you see the plot.
+## Would it be okay to use different data variables for each question? or should we make the primary data more general? 
+```
+```{r}
+## table of alcohol consumption, gender, general thelah
+brfss_alcohol_sex <- brfss_unique %>%
+  select(genhlth, avedrnk2, sex) %>%
+  drop_na() %>%
+  filter(avedrnk2<77)%>%
+  group_by(genhlth, sex) %>%
+  summarize(avg_drink = mean(avedrnk2))
+brfss_alcohol_sex
+```
+
+```{r}
+## table of alcohol consumption, gender, general thelah
+ggplot(brfss_alcohol_sex, aes(x = genhlth, y = avg_drink, fill = sex)) +
+         geom_bar(position = "dodge", stat = "identity") +
+         labs(x = "General Health Status", y = "Daily Alcohol Consumption", fill = "Gender", title = "Relationship between genhealth and alcohol consumption") 
+```
+## Explanation: The plot shows that people in poor health drinks more alcohol than those people in good health. When comparing between genders, male consumes more alcohol than women.

@@ -135,8 +135,6 @@ Is there an association between alcohol consumption and level of general health?
 -  How does it apply to across income level, genders,etc?
 
 ```{r}
-# version1
-
 brfss_alcohol <- brfss_unique %>%
   select(genhlth, avedrnk2, sex) %>%
   drop_na() %>%
@@ -146,23 +144,9 @@ brfss_alcohol <- brfss_unique %>%
 
 ggplot(brfss_alcohol, aes(x= genhlth, y = avedrnk2)) + geom_point(aes(x= genhlth, y = avg_drink)) + labs(x = "general health", y = "average drink", title = "general health vs average drink") 
 
-# version 2
-brfss_tmp_alcohol <- brfss %>%
-  select(genhlth, sex, income2 ,avedrnk2) %>%
-  na.omit() %>%
-  filter(avedrnk2<77) %>%
-  group_by(genhlth) %>%
-  summarize(avg_drink = mean(avedrnk2)) %>%
-  tibble()
-
-ggplot(brfss_tmp_alcohol, aes(x= genhlth, y = avedrnk2)) + geom_point(aes(x= genhlth, y = avg_drink)) + labs(x = "general health", y = "average drink", title = "general health vs average drink") 
-
-## question here: if I use brfss_unique data and brfss data, the mean is different
-## it more make sense if I use brfss_alcohol data when you see the plot.
-## Would it be okay to use different data variables for each question? or should we make the primary data more general? 
 ```
 ```{r}
-## table of alcohol consumption, gender, general thelah
+## table of alcohol consumption, gender, general health
 brfss_alcohol_sex <- brfss_unique %>%
   select(genhlth, avedrnk2, sex) %>%
   drop_na() %>%

@@ -32,14 +32,12 @@ brfss_unique <- brfss2013[!duplicated(brfss2013$seqno), ]
 
 # drop blank/refused/unknown/not sure
 brfss_tmp <- brfss_unique %>%
-  select(X_state, genhlth, sex, income2, weight2, height3, sleptim1, fruit1, fruitju1, avedrnk2) %>%
+  select(genhlth, sex, income2, weight2, height3, fruit1, fruitju1, avedrnk2, X_bmi5cat) %>%
   na.omit() %>%
-  filter(X_state == "Alabama") %>%
   filter(!(genhlth == 7) & !(genhlth == 9)) %>%
   filter(!(income2 == 77) & !(income2 == 99)) %>%
   filter(!(weight2 == 7777) & !(weight2 == 9999) & !(weight2 == '')) %>%
   filter(!(height3 == 7777) & !(height3 == 9999)) %>%
-  filter(sleptim1 >= 1 & sleptim1 <= 24) %>%
   tibble()
 
 # unify height unit in meters
@@ -62,10 +60,21 @@ for (i in brfss_tmp$weight2) {
   }}
 brfss_tmp$weight_new <- tmp_weight
 
+## categorized fruitju1 & fruit1
+## merge 0 and 300 since sample size too small
+categorized <- function(variable){
+  ifelse(variable == 0 | variable == 300, "Rarely",
+         ifelse(variable <= 199, "Always",
+                ifelse(variable <= 299, "Very Often", "Sometimes")))
+  }
+
 # create new 'BMI' variable
+# create new categorical fruit variable
 brfss_tmp %>% 
   mutate(BMI = weight_new/height_new^2) %>%
-  select(genhlth, sex, income2, BMI, sleptim1, fruit1, fruitju1, avedrnk2) -> brfss
+  mutate(fruitju1_cat = as.factor(categorized(fruitju1)),
+         fruit1_cat = as.factor(categorized(fruit1))) %>%
+  select(genhlth, sex, income2, BMI, fruit1_cat, fruitju1_cat, avedrnk2, X_bmi5cat) -> brfss
 ```
 
 ## What is the outcome variable of interest in your analysis? 
@@ -114,19 +123,87 @@ data3 <- df %>%
   summarize(avg_drink = mean(avedrnk2))
 
 
-tbl_summary(brfss, by = genhlth,
-            label = list(sex ~ "Sex",
-                         income2 ~ "Income Level",
-                         BMI ~ "BMI",
-                         sleptim1 ~ "Sleep Hours",
-                         fruit1 ~ "Times Eating Fruit",
-                         fruitju1 ~ "Times Drinking Fruit Juices"),
-            statistic = list(all_continuous() ~ "{median}, ({p25}, {p75})",
-                             all_categorical() ~ "{n} ({p}%)")) %>%
-  add_p(test = list(all_continuous() ~ "t.test")) %>%
-  modify_header(label = "**Characteristics**") %>%
+## generate overall table one
+## test usage reference
+## not sure if included BMI categories or not
+## include p-value <= 0.2 (in this case all)
+brfss %>%
+  tbl_summary(by = genhlth,
+              label = list(sex ~ "Sex",
+                           income2 ~ "Income Level",
+                           BMI ~ "BMI",
+                           fruit1_cat ~ "Times Eating Fruit",
+                           fruitju1_cat ~ "Times Drinking Fruit Juices",
+                           avedrnk2 ~ "Number of Alcoholic Beverages Comsumption per Day",
+                           X_bmi5cat ~ "BMI Category")) %>%
+  add_p() %>%
   bold_labels()
 ```
+
+```{r}
+## table one categorized by sex
+## Male
+## error message since "underweight - fair" sample size too small: fix it?
+brfss %>%
+  filter(sex == "Male") %>%
+  select(-sex) %>%
+  tbl_summary(by = genhlth,
+              label = list(income2 ~ "Income Level",
+                           BMI ~ "BMI",
+                           fruit1_cat ~ "Times Eating Fruit",
+                           fruitju1_cat ~ "Times Drinking Fruit Juices",
+                           avedrnk2 ~ "Number of Alcoholic Beverages Comsumption per Day",
+                           X_bmi5cat ~ "BMI Category")) %>%
+  add_p() %>%
+  bold_labels()
+
+## Female
+brfss %>%
+  filter(sex == "Female") %>%
+  select(-sex) %>%
+  tbl_summary(by = genhlth,
+              label = list(income2 ~ "Income Level",
+                           BMI ~ "BMI",
+                           fruit1_cat ~ "Times Eating Fruit",
+                           fruitju1_cat ~ "Times Drinking Fruit Juices",
+                           avedrnk2 ~ "Number of Alcoholic Beverages Comsumption per Day",
+                           X_bmi5cat ~ "BMI Category")) %>%
+  add_p() %>%
+  bold_labels()
+
+
+## table one categorized by BMI category
+## Obese
+brfss %>%
+  filter(X_bmi5cat == "Obese") %>%
+  select(-X_bmi5cat) %>%
+  tbl_summary(by = genhlth,
+              label = list(sex ~ "Sex",
+                           income2 ~ "Income Level",
+                           BMI ~ "BMI",
+                           fruit1_cat ~ "Times Eating Fruit",
+                           fruitju1_cat ~ "Times Drinking Fruit Juices",
+                           avedrnk2 ~ "Number of Alcoholic Beverages Comsumption per Day")) %>%
+  add_p() %>%
+  bold_labels()
+
+##...other categories: do not need to compute every category, can choose some to analyze
+```
+
+```{r}
+## overall table one
+## more significant digits
+descrTable(genhlth ~ ., data = brfss)
+
+## filter male analysis
+## similar for other categories
+brfss_male <- brfss %>%
+  filter(sex == "Male") %>%
+  select(-sex)
+descrTable(genhlth ~ ., data = brfss_male)
+```
+
+**TODO: fit regression model, generate graphs to visualize**
 
 ## sociodemographic variables
 

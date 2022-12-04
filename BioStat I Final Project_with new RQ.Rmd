@@ -1,0 +1,235 @@
+---
+title: "BioStat I Final Project"
+author: "Jiefei Hu, Minhee Kwon, Yaoting Li, Xueqing Zhou"
+date: "2022-12-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  cache = TRUE,
+  error = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  tidy.opts = list(width.cutoff = 60)
+)
+```
+
+```{r load_packages}
+library(tidyverse)
+library(gtsummary)
+```
+
+```{r load_data}
+load("./brfss2013.RData")
+dim(brfss2013)
+head(brfss2013)
+```
+
+## Research Question
+
+What are the factors that will affect health conditions?
+
+## What is the outcome variable of interest in your analysis? 
+
+Our outcome variables of interest are variables measuring the health condition, which include General Health 'genhlth', Have any health care coverage 'hlthpln1', and How Much Time Do You Sleep 'sleptim1'.
+
+### outcome variable distribution
+
+```{r health_variables}
+# drop duplication
+brfss_unique <- brfss2013[!duplicated(brfss2013$seqno), ]
+
+# select health condition measurement variables
+brfss_hlth <- brfss_unique %>%
+  select(genhlth, hlthpln1, sleptim1) %>%
+  na.omit()
+summary(brfss_hlth)
+```
+
+### outcome variable distribution graphs
+
+```{r genhlth}
+brfss_hlth %>%
+  ggplot(aes(x = genhlth)) + 
+  geom_bar(position = "stack") + 
+  ylab("number of person") + 
+  xlab("general health")
+```
+
+### Could someone do the graph for the distribution of other health variables?
+
+1. hlthpln1
+
+2. sleptim1
+
+## What are the factors associated with health conditions?
+
+```{r clean_factor_variables}
+# drop refused/unknown/not sure
+brfss_tmp <- brfss_unique %>%
+  select(genhlth, hlthpln1, sleptim1, sex, income2, weight2, height3, fruit1, fruitju1, avedrnk2) %>%
+  na.omit() %>%
+  filter(sleptim1 <=24) %>%
+  filter(!(income2 == 77) & !(income2 == 99)) %>%
+  filter(!(weight2 == 7777) & !(weight2 == 9999) & !(weight2 == '')) %>%
+  filter(!(height3 == 7777) & !(height3 == 9999)) %>%
+  tibble()
+
+# unify height unit in meters
+tmp_height <- c()
+for (i in brfss_tmp$height3) {
+  if (as.numeric(i) <= 711) {
+    tmp_height <- append(tmp_height, (as.numeric(substr(i, 1, 1))*30.48 + as.numeric(substr(i, 2, 3))*2.54)/100)
+  } else {
+    tmp_height <- append(tmp_height, as.numeric(substr(i, 2, 4))/100)
+  }}
+brfss_tmp$height_new <- tmp_height
+
+# unify weight units in kilograms
+tmp_weight <- c()
+for (i in brfss_tmp$weight2) {
+  if (as.numeric(i) <= 999) {
+    tmp_weight <- append(tmp_weight, as.numeric(i)*0.4536)
+  } else {
+    tmp_weight <- append(tmp_weight, as.numeric(substr(i, 2, 4)))
+  }}
+brfss_tmp$weight_new <- tmp_weight
+
+## categorized fruitju1 & fruit1
+## merge 0 and 300 since sample size too small
+categorized <- function(variable){
+  ifelse(variable == 0 | variable == 300, "Rarely",
+         ifelse(variable <= 199, "Always",
+                ifelse(variable <= 299, "Very Often", "Sometimes")))
+}
+
+# create new 'BMI' variable
+# create new categorical fruit variable
+brfss_tmp %>% 
+  mutate(BMI = weight_new/height_new^2) %>%
+  mutate(fruitju1_cat = as.factor(categorized(fruitju1)),
+         fruit1_cat = as.factor(categorized(fruit1))) %>%
+  select(genhlth, hlthpln1, sleptim1, sex, income2, BMI, fruit1_cat, fruitju1_cat, avedrnk2) -> brfss
+```
+
+### Graphic summaries - relationships
+
+```{r genhlth~sex}
+barplot(table(brfss$sex, brfss$genhlth),
+        main = "Distribution of General Health by Sex", xlab = "General Health",
+        legend = rownames(table(brfss$sex, brfss$genhlth)), beside = TRUE)
+```
+
+```{r genhlth~income}
+brfss %>%
+  ggplot(aes(x = income2, fill = genhlth)) +
+  geom_bar(position = "fill") +
+  scale_fill_brewer(palette = "Greys") +
+  ylab("Percentage of general health") +
+  xlab("Income level")
+```
+
+```{r genhlth~BMI}
+brfss %>%
+  ggplot(aes(x = genhlth, y = BMI, fill = genhlth)) +
+  geom_boxplot() + 
+  labs(title = "Boxplot of General Health by BMI",
+       x = "General Health", y = "BMI")
+```
+
+```{r genhlth ~ avedrnk}
+# For alcohol, I'm not sure if log would help cuz it's too right-skewed
+# Maybe just use a table to show the mean, which I put in the next chunk
+brfss %>%
+  ggplot(aes(x = genhlth, y = log(avedrnk2), fill = genhlth)) +
+  geom_boxplot() + 
+  labs(title = "Boxplot of General Health by average alcoholic drinking",
+       x = "General Health", y = "Average alcoholic drinking")
+```
+
+```{r genhlth ~ avedrnk_mean}
+brfss %>%
+  group_by(genhlth) %>%
+  summarize(mean_consumption = round(mean(avedrnk2), 2))
+```
+
+```{r genhlth ~ fruit1_cat}
+# do we need to have some plot for fruit to show distribution?
+```
+
+```{r genhlth ~ fruitju1_cat}
+# same question for fruitju
+```
+
+### Numeric summaries - Table One
+
+Table One is used to show numerical summaries of characteristics/variables of interest by health variables.
+
+It shows number of count and percentage for all categorical variables, and it presents mean and standard deviation for all continuous variables.
+
+#### by General Health 'genhlth'
+
+```{r table1_genhlth}
+brfss %>%
+  select(-hlthpln1, -sleptim1) %>%
+  tbl_summary(by = genhlth,
+              label = list(sex ~ "Sex",
+                           income2 ~ "Income Level",
+                           BMI ~ "BMI",
+                           avedrnk2 ~ "Average alcoholic drinks per day",
+                           fruit1_cat ~ "Frequency Eating Fruit",
+                           fruitju1_cat ~ "Frequency Drinking Fruit Juices"),
+              statistic = list(all_continuous() ~ "{mean}, ({sd})",
+                               all_categorical() ~ "{n} ({p}%)"),
+              digits = list(BMI ~ c(1,2),
+                            avedrnk2 ~ c(1,2))) %>%
+  add_p() %>%
+  modify_header(label = "**Characteristics**") %>%
+  bold_labels()
+```
+
+### by hlthpln1
+
+```{r table1_hlthpln1}
+brfss %>%
+  select(-genhlth, -sleptim1) %>%
+  tbl_summary(by = hlthpln1,
+              label = list(sex ~ "Sex",
+                           income2 ~ "Income Level",
+                           BMI ~ "BMI",
+                           avedrnk2 ~ "Average alcoholic drinks per day",
+                           fruit1_cat ~ "Frequency Eating Fruit",
+                           fruitju1_cat ~ "Frequency Drinking Fruit Juices"),
+              statistic = list(all_continuous() ~ "{mean}, ({sd})",
+                               all_categorical() ~ "{n} ({p}%)"),
+              digits = list(BMI ~ c(1,2),
+                            avedrnk2 ~ c(1,2))) %>%
+  add_p() %>%
+  modify_header(label = "**Characteristics**") %>%
+  bold_labels()
+```
+
+### by sleep hours
+
+```{r}
+brfss %>%
+  mutate(adequate_sleptim = if_else(sleptim1 < 7, "inadequate sleep", "adequate sleep")) -> brfss_slep
+brfss_slep %>%
+  select(-genhlth, -hlthpln1) %>%
+  tbl_summary(by = adequate_sleptim,
+              label = list(sex ~ "Sex",
+                           income2 ~ "Income Level",
+                           BMI ~ "BMI",
+                           avedrnk2 ~ "Average alcoholic drinks per day",
+                           fruit1_cat ~ "Frequency Eating Fruit",
+                           fruitju1_cat ~ "Frequency Drinking Fruit Juices"),
+              statistic = list(all_continuous() ~ "{mean}, ({sd})",
+                               all_categorical() ~ "{n} ({p}%)"),
+              digits = list(BMI ~ c(1,2),
+                            avedrnk2 ~ c(1,2))) %>%
+  add_p() %>%
+  modify_header(label = "**Characteristics**") %>%
+  bold_labels()
+```
+

@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(readr)
 library(tidyverse)
-load("C:/Users/HP/Desktop/brfss2013.RData")
+load("brfss2013.RData")
 ```
 
 ## What sociodemographic variables, if any, may be important to consider for your research question?

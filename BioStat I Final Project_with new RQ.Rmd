@@ -58,6 +58,7 @@ brfss_hlth %>%
 ```
 
 ### Could someone do the graph for the distribution of other health variables?
+<<<<<<< HEAD
 OKay - Minhee
 1. hlthpln1
 ```{r}
@@ -80,6 +81,15 @@ brfss_hlth %>%
 ```
 
 ## What are the factors associated with health conditions?
+=======
+
+1. hlthpln1
+
+2. sleptim1
+
+## What are the factors associated with health conditions?
+
+>>>>>>> 685e62fef51679e99ab17115887f2dd5c020d1cb
 ```{r clean_factor_variables}
 # drop refused/unknown/not sure
 brfss_tmp <- brfss_unique %>%
@@ -165,6 +175,7 @@ brfss %>%
 
 ```{r genhlth ~ avedrnk_mean}
 ## the mean consumption of poor status of general health is smaller than those with fair status..? 
+
 brfss %>%
   group_by(genhlth) %>%
   summarize(mean_consumption = round(mean(avedrnk2), 2))

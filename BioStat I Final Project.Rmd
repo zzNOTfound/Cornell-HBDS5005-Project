@@ -229,7 +229,7 @@ brfss_alcohol_sex <- brfss_unique %>%
   drop_na() %>%
   filter(avedrnk2<77)%>%
   group_by(genhlth, sex) %>%
-  summarize(avg_drink = mean(avedrnk2))
+  summarize(avg_drink = mean(avedrnk2)) 
 brfss_alcohol_sex
 ```
 
